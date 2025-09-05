@@ -1,5 +1,28 @@
 import Foundation
 
+// MARK: - Supporting Enums
+enum Difficulty: String, CaseIterable, Codable {
+    case beginner = "초급"
+    case intermediate = "중급"
+    case advanced = "고급"
+}
+
+enum Equipment: String, CaseIterable, Codable {
+    case machine = "머신"
+    case cable = "케이블"
+    case barbell = "바벨"
+    case dumbbell = "덤벨"
+    case bodyweight = "맨몸"
+}
+
+enum ExerciseCategory: String, CaseIterable, Codable {
+    case compound = "복합"
+    case isolation = "고립"
+    case cardio = "유산소"
+    case stretch = "스트레칭"
+}
+
+// MARK: - Exercise Type
 struct ExerciseType: Identifiable, Hashable, Codable {
     let id: UUID
     let name: String
@@ -86,58 +109,8 @@ struct ExerciseType: Identifiable, Hashable, Codable {
     }
 }
 
-enum Equipment: String, CaseIterable, Codable {
-    case machine = "머신"
-    case cable = "케이블"
-    case barbell = "바벨"
-    case dumbbell = "덤벨"
-    case bodyweight = "맨몸"
-}
-
-enum ExerciseCategory: String, CaseIterable, Codable {
-    case compound = "복합"
-    case isolation = "고립"
-    case cardio = "유산소"
-    case stretch = "스트레칭"
-}
-
-enum Difficulty: String, CaseIterable, Codable {
-    case beginner = "초급"
-    case intermediate = "중급"
-    case advanced = "고급"
-}
-
-struct Exercise: Identifiable, Codable {
-    let id: UUID
-    let name: String
-    var sets: [WorkoutSet]
-    let exerciseType: ExerciseType
-    let datePerformed: Date
-    
-    private enum CodingKeys: String, CodingKey {
-        case name, sets, exerciseType, datePerformed
-    }
-    
-    init(exerciseType: ExerciseType, sets: [WorkoutSet] = [], datePerformed: Date = Date()) {
-        self.id = UUID()
-        self.name = exerciseType.name
-        self.exerciseType = exerciseType
-        self.sets = sets
-        self.datePerformed = datePerformed
-    }
-    
-    // Decodable 구현
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.id = UUID() // 항상 새 UUID 생성
-        self.name = try container.decode(String.self, forKey: .name)
-        self.sets = try container.decode([WorkoutSet].self, forKey: .sets)
-        self.exerciseType = try container.decode(ExerciseType.self, forKey: .exerciseType)
-        self.datePerformed = try container.decode(Date.self, forKey: .datePerformed)
-    }
-}
-
-struct WorkoutSet: Identifiable, Codable {
+// MARK: - Workout Set
+struct WorkoutSet: Identifiable, Codable, Hashable {
     let id: UUID
     let weight: Double
     let reps: Int
@@ -164,5 +137,36 @@ struct WorkoutSet: Identifiable, Codable {
         self.reps = try container.decode(Int.self, forKey: .reps)
         self.restTime = try container.decode(TimeInterval.self, forKey: .restTime)
         self.completedAt = try container.decode(Date.self, forKey: .completedAt)
+    }
+}
+
+// MARK: - Exercise
+struct Exercise: Identifiable, Codable, Hashable {
+    let id: UUID
+    let name: String
+    var sets: [WorkoutSet]
+    let exerciseType: ExerciseType
+    let datePerformed: Date
+    
+    private enum CodingKeys: String, CodingKey {
+        case name, sets, exerciseType, datePerformed
+    }
+    
+    init(exerciseType: ExerciseType, sets: [WorkoutSet] = [], datePerformed: Date = Date()) {
+        self.id = UUID()
+        self.name = exerciseType.name
+        self.exerciseType = exerciseType
+        self.sets = sets
+        self.datePerformed = datePerformed
+    }
+    
+    // Decodable 구현
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = UUID() // 항상 새 UUID 생성
+        self.name = try container.decode(String.self, forKey: .name)
+        self.sets = try container.decode([WorkoutSet].self, forKey: .sets)
+        self.exerciseType = try container.decode(ExerciseType.self, forKey: .exerciseType)
+        self.datePerformed = try container.decode(Date.self, forKey: .datePerformed)
     }
 }

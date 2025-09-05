@@ -63,8 +63,16 @@ class ExerciseDatabase: ObservableObject {
         ]
     }
     
-    // MARK: - Query Methods
+    // MARK: - Computed Properties
+    var allBodyParts: [String] {
+        Array(Set(exercises.map { $0.bodyPart })).sorted()
+    }
     
+    var allEquipment: [Equipment] {
+        Equipment.allCases
+    }
+    
+    // MARK: - Filtering Methods
     func getExercises(for bodyPart: String) -> [ExerciseType] {
         exercises.filter { $0.bodyPart == bodyPart }
     }
@@ -77,30 +85,10 @@ class ExerciseDatabase: ObservableObject {
         exercises.filter { $0.bodyPart == bodyPart && $0.equipment == equipment }
     }
     
-    func getExercises(for category: ExerciseCategory) -> [ExerciseType] {
-        exercises.filter { $0.category == category }
-    }
-    
     func searchExercises(query: String) -> [ExerciseType] {
-        guard !query.isEmpty else { return exercises }
+        if query.isEmpty {
+            return exercises
+        }
         return exercises.filter { $0.name.localizedCaseInsensitiveContains(query) }
-    }
-    
-    var allBodyParts: [String] {
-        Array(Set(exercises.map { $0.bodyPart })).sorted()
-    }
-    
-    var allEquipment: [Equipment] {
-        Equipment.allCases
-    }
-    
-    // MARK: - Management Methods
-    
-    func addCustomExercise(_ exercise: ExerciseType) {
-        exercises.append(exercise)
-    }
-    
-    func removeExercise(_ exercise: ExerciseType) {
-        exercises.removeAll { $0.id == exercise.id }
     }
 }
