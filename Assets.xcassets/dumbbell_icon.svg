@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with gradient -->
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="30%" r="70%">
+      <stop offset="0%" style="stop-color:#4A90E2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2E5BBA;stop-opacity:1" />
+    </radialGradient>
+    <linearGradient id="dumbbell" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#34495E;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#2C3E50;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1A252F;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="highlight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#7F8C8D;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#95A5A6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="512" cy="512" r="512" fill="url(#bg)"/>
+  
+  <!-- Dumbbell design -->
+  <!-- Left weight plate -->
+  <ellipse cx="256" cy="512" rx="80" ry="120" fill="url(#dumbbell)"/>
+  <ellipse cx="256" cy="512" rx="60" ry="100" fill="url(#highlight)"/>
+  <ellipse cx="256" cy="512" rx="40" ry="80" fill="url(#dumbbell)"/>
+  
+  <!-- Right weight plate -->
+  <ellipse cx="768" cy="512" rx="80" ry="120" fill="url(#dumbbell)"/>
+  <ellipse cx="768" cy="512" rx="60" ry="100" fill="url(#highlight)"/>
+  <ellipse cx="768" cy="512" rx="40" ry="80" fill="url(#dumbbell)"/>
+  
+  <!-- Handle bar -->
+  <rect x="336" y="480" width="352" height="64" rx="32" fill="url(#dumbbell)"/>
+  <rect x="336" y="488" width="352" height="48" rx="24" fill="url(#highlight)"/>
+  <rect x="336" y="496" width="352" height="32" rx="16" fill="url(#dumbbell)"/>
+  
+  <!-- Handle grip texture -->
+  <rect x="400" y="496" width="4" height="32" fill="#1A252F" opacity="0.5"/>
+  <rect x="420" y="496" width="4" height="32" fill="#1A252F" opacity="0.5"/>
+  <rect x="440" y="496" width="4" height="32" fill="#1A252F" opacity="0.5"/>
+  <rect x="460" y="496" width="4" height="32" fill="#1A252F" opacity="0.5"/>
+  <rect x="480" y="496" width="4" height="32" fill="#1A252F" opacity="0.5"/>
+  <rect x="500" y="496" width="4" height="32" fill="#1A252F" opacity="0.5"/>
+  <rect x="520" y="496" width="4" height="32" fill="#1A252F" opacity="0.5"/>
+  <rect x="540" y="496" width="4" height="32" fill="#1A252F" opacity="0.5"/>
+  <rect x="560" y="496" width="4" height="32" fill="#1A252F" opacity="0.5"/>
+  <rect x="580" y="496" width="4" height="32" fill="#1A252F" opacity="0.5"/>
+  <rect x="600" y="496" width="4" height="32" fill="#1A252F" opacity="0.5"/>
+  <rect x="620" y="496" width="4" height="32" fill="#1A252F" opacity="0.5"/>
+  
+  <!-- Connecting parts between handle and weights -->
+  <rect x="316" y="496" width="40" height="32" rx="16" fill="url(#dumbbell)"/>
+  <rect x="668" y="496" width="40" height="32" rx="16" fill="url(#dumbbell)"/>
+  
+  <!-- Highlight on weights for 3D effect -->
+  <ellipse cx="230" cy="480" rx="20" ry="30" fill="#BDC3C7" opacity="0.6"/>
+  <ellipse cx="794" cy="480" rx="20" ry="30" fill="#BDC3C7" opacity="0.6"/>
+</svg>
