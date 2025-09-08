@@ -1,0 +1,36 @@
+# SwiftLint Configuration
+# Adjust rules incrementally; start lenient, tighten later.
+
+included:
+  - Workoutlog
+  - WorkoutlogTests
+  - WorkoutlogUITests
+
+excluded:
+  - Pods
+  - Build
+  - DerivedData
+
+line_length:
+  warning: 130
+  error: 180
+
+identifier_name:
+  min_length: 2
+  excluded: [id, x, y]
+
+trailing_whitespace:
+  ignores_empty_lines: true
+
+opt_in_rules:
+  - empty_count
+  - redundant_nil_coalescing
+  - first_where
+  - toggle_bool
+
+disabled_rules:
+  - todo        # Allow TODOs early
+  - function_parameter_count
+  - cyclomatic_complexity
+
+reporter: "xcode"
