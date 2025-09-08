@@ -1,0 +1,45 @@
+# Xcode / Swift / iOS standard ignores
+# Build artifacts
+build/
+DerivedData/
+
+# User settings
+*.xcuserdatad/
+*.xccheckout
+*.moved-aside
+*.xcworkspace/xcuserdata/
+
+# Swift Package Manager
+/.build
+/Packages
+.swiftpm/xcode/package.xcworkspace/xcuserdata/
+.swiftpm/cache/
+
+# CocoaPods (if later added)
+Pods/
+
+# Carthage (if later added)
+Carthage/Build
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Logs & temp
+*.log
+*.swp
+.DS_Store
+
+# Generated
+xcuserdata/
+
+# Secrets (placeholder)
+Secrets/
+
+# JSON snapshots (autosave)
+Snapshots/
+
+# Ignore active session file if needed
+Sessions/active.json
