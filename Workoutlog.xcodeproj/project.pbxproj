@@ -6,6 +6,13 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		AE4942102E6EB7DC0084C7A6 /* CONTRIBUTING.md in Resources */ = {isa = PBXBuildFile; fileRef = AE49420C2E6EB7DC0084C7A6 /* CONTRIBUTING.md */; };
+		AE4942112E6EB7DC0084C7A6 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = AE49420D2E6EB7DC0084C7A6 /* README.md */; };
+		AE4942122E6EB7DC0084C7A6 /* bump_version.sh in Resources */ = {isa = PBXBuildFile; fileRef = AE49420E2E6EB7DC0084C7A6 /* bump_version.sh */; };
+		AE4942132E6EB7DC0084C7A6 /* Base.xcconfig in Resources */ = {isa = PBXBuildFile; fileRef = AE49420A2E6EB7DC0084C7A6 /* Base.xcconfig */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		AE368B842E6E9D7C00904921 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -27,6 +34,10 @@
 		AE368B752E6E9D7B00904921 /* Workoutlog.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Workoutlog.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AE368B832E6E9D7C00904921 /* WorkoutlogTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WorkoutlogTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AE368B8D2E6E9D7C00904921 /* WorkoutlogUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WorkoutlogUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AE49420A2E6EB7DC0084C7A6 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
+		AE49420C2E6EB7DC0084C7A6 /* CONTRIBUTING.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CONTRIBUTING.md; sourceTree = "<group>"; };
+		AE49420D2E6EB7DC0084C7A6 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		AE49420E2E6EB7DC0084C7A6 /* bump_version.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = bump_version.sh; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -75,6 +86,10 @@
 		AE368B6C2E6E9D7B00904921 = {
 			isa = PBXGroup;
 			children = (
+				AE49420B2E6EB7DC0084C7A6 /* Config */,
+				AE49420C2E6EB7DC0084C7A6 /* CONTRIBUTING.md */,
+				AE49420D2E6EB7DC0084C7A6 /* README.md */,
+				AE49420F2E6EB7DC0084C7A6 /* scripts */,
 				AE368B772E6E9D7B00904921 /* Workoutlog */,
 				AE368B862E6E9D7C00904921 /* WorkoutlogTests */,
 				AE368B902E6E9D7C00904921 /* WorkoutlogUITests */,
@@ -92,6 +107,22 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		AE49420B2E6EB7DC0084C7A6 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				AE49420A2E6EB7DC0084C7A6 /* Base.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
+		AE49420F2E6EB7DC0084C7A6 /* scripts */ = {
+			isa = PBXGroup;
+			children = (
+				AE49420E2E6EB7DC0084C7A6 /* bump_version.sh */,
+			);
+			path = scripts;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -102,6 +133,7 @@
 				AE368B712E6E9D7B00904921 /* Sources */,
 				AE368B722E6E9D7B00904921 /* Frameworks */,
 				AE368B732E6E9D7B00904921 /* Resources */,
+				AE4942092E6EB6CE0084C7A6 /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -212,6 +244,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AE4942102E6EB7DC0084C7A6 /* CONTRIBUTING.md in Resources */,
+				AE4942112E6EB7DC0084C7A6 /* README.md in Resources */,
+				AE4942122E6EB7DC0084C7A6 /* bump_version.sh in Resources */,
+				AE4942132E6EB7DC0084C7A6 /* Base.xcconfig in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -230,6 +266,26 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		AE4942092E6EB6CE0084C7A6 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\nif [[ \"$(uname -m)\" == arm64 ]]; then\n    export PATH=\"/opt/homebrew/bin:$PATH\"\nfi\n \nif which swiftlint > /dev/null; then\n  swiftlint\nelse\n  echo \"warning: SwiftLint not installed, download from https://github.com/realm/SwiftLint\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		AE368B712E6E9D7B00904921 /* Sources */ = {
