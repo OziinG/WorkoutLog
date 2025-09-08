@@ -24,15 +24,20 @@ jobs:
       - name: List targets (debug)
         run: xcodebuild -list -project Workoutlog.xcodeproj
 
-      - name: Build & test
+      - name: Show available destinations
+        run: xcodebuild -project Workoutlog.xcodeproj -scheme Workoutlog -showdestinations || true
+
+      - name: Build & test (iPhone 15 Simulator)
         run: |
           set -o pipefail
+          # iOS 버전을 명시하여 destination을 더 구체적으로 지정합니다.
+          # 현재 macos-14 최신 Xcode 기준 iOS 17.5 버전이 주로 사용됩니다.
           xcodebuild \
             -project Workoutlog.xcodeproj \
             -scheme Workoutlog \
-            -destination 'platform=iOS Simulator,name=iPhone 16' \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.5' \
             -configuration Debug \
-            clean test | xcpretty
+            clean test
         env:
           NSUnbufferedIO: YES
 
