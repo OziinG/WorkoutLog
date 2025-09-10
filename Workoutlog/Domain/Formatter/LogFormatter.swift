@@ -17,7 +17,7 @@ public struct LogFormatter {
         }
         
         let sortedExercises = session.exercises.sorted { $0.order < $1.order }
-        let supersetExercises = Set(session.supersets.flatMap { $0.exerciseIds })
+        // let supersetExercises = Set(session.supersets.flatMap { $0.exerciseIds })
         
         var exerciseIndex = 1
         var processedExercises = Set<UUID>()
