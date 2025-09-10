@@ -4,7 +4,7 @@ public actor InMemorySessionStore: WorkoutSessionStore {
     // MARK: - Private Properties
 
     private var sessions: [UUID: WorkoutSession] = [:]
-    private var autosaveTimer: Timer?
+    private var autosaveTask: Task<Void, Never>?
     private var autosaveInterval: TimeInterval = 0
     private var isAutosaveActive = false
     
@@ -72,8 +72,8 @@ public actor InMemorySessionStore: WorkoutSessionStore {
     
     public func disableAutosave() async {
         isAutosaveActive = false
-        autosaveTimer?.invalidate()
-        autosaveTimer = nil
+        autosaveTask?.cancel()
+        autosaveTask = nil
     }
     
     public func isAutosaveEnabled() async -> Bool {
@@ -135,6 +135,7 @@ public actor InMemorySessionStore: WorkoutSessionStore {
     }
     
     public func getStorageSize() async throws -> Int64 {
+        guard !sessions.isEmpty else { return 0 }
         do {
             let data = try JSONEncoder().encode(Array(sessions.values))
             return Int64(data.count)
@@ -156,15 +157,22 @@ public actor InMemorySessionStore: WorkoutSessionStore {
     }
     
     private func scheduleAutosave() async {
-        await MainActor.run {
-            autosaveTimer?.invalidate()
-            autosaveTimer = Timer.scheduledTimer(withTimeInterval: autosaveInterval, repeats: true) { [weak self] _ in
-                Task {
-                    await self?.saveToPersistence()
+            autosaveTask?.cancel()
+            
+            autosaveTask = Task {
+                while !Task.isCancelled {
+                    do {
+                        try await Task.sleep(for: .seconds(autosaveInterval))
+                        if !Task.isCancelled {
+                            await saveToPersistence()
+                        }
+                    } catch {
+                        break
+                    }
                 }
             }
         }
-    }
+    
     
     private func saveToPersistence() async {
         do {

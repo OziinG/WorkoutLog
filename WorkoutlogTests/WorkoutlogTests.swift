@@ -592,6 +592,7 @@ struct StorageTests {
     
     @Test func inMemoryStoreStatisticsAndUtilities() async throws {
         let store = InMemorySessionStore()
+        try await store.clearAllData()
         
         // Initially empty
         let initialCount = try await store.getTotalSessionCount()
