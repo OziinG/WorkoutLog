@@ -437,3 +437,266 @@ struct LogFormatterTests {
         #expect(log.contains("B 4: 65kg x8"))
     }
 }
+
+// MARK: - Storage Tests
+
+struct StorageTests {
+    
+    @Test func inMemoryStoreBasicCRUD() async throws {
+        let store = InMemorySessionStore()
+        
+        // Create test session
+        let session = WorkoutSession()
+        
+        // Save
+        try await store.save(session)
+        
+        // Load by ID
+        let loadedSession = try await store.load(id: session.id)
+        #expect(loadedSession != nil)
+        #expect(loadedSession?.id == session.id)
+        
+        // Load all
+        let allSessions = try await store.loadAll()
+        #expect(allSessions.count == 1)
+        #expect(allSessions.first?.id == session.id)
+        
+        // Update
+        var updatedSession = session
+        updatedSession.status = .completed
+        try await store.updateSession(updatedSession)
+        
+        let reloadedSession = try await store.load(id: session.id)
+        #expect(reloadedSession?.status == .completed)
+        
+        // Delete
+        try await store.delete(id: session.id)
+        let deletedSession = try await store.load(id: session.id)
+        #expect(deletedSession == nil)
+        
+        // Delete non-existent should throw
+        await #expect(throws: StorageError.self) {
+            try await store.delete(id: UUID())
+        }
+    }
+    
+    @Test func inMemoryStoreActiveSessionManagement() async throws {
+        let store = InMemorySessionStore()
+        
+        // Create multiple sessions
+        let activeSession1 = WorkoutSession()
+        let activeSession2 = WorkoutSession()
+        var completedSession = WorkoutSession()
+        completedSession.status = .completed
+        
+        try await store.save(activeSession1)
+        try await store.save(activeSession2)
+        try await store.save(completedSession)
+        
+        // Get active sessions
+        let activeSessions = try await store.getActiveSessions()
+        #expect(activeSessions.count == 2)
+        
+        // Get completed sessions
+        let completedSessions = try await store.getCompletedSessions()
+        #expect(completedSessions.count == 1)
+        #expect(completedSessions.first?.status == .completed)
+        
+        // Get most recent active session
+        let mostRecent = try await store.getMostRecentActiveSession()
+        #expect(mostRecent != nil)
+        #expect([activeSession1.id, activeSession2.id].contains(mostRecent!.id))
+    }
+    
+    @Test func inMemoryStoreAutosaveManagement() async throws {
+        let store = InMemorySessionStore()
+        
+        // Initially autosave should be disabled
+        let initiallyEnabled = await store.isAutosaveEnabled()
+        #expect(initiallyEnabled == false)
+        
+        // Enable autosave
+        await store.enableAutosave(interval: 1.0)
+        let enabledAfter = await store.isAutosaveEnabled()
+        #expect(enabledAfter == true)
+        
+        // Disable autosave
+        await store.disableAutosave()
+        let disabledAfter = await store.isAutosaveEnabled()
+        #expect(disabledAfter == false)
+    }
+    
+    @Test func inMemoryStoreExpirationHandling() async throws {
+        let store = InMemorySessionStore()
+        
+        // Create expired session (13 hours ago)
+        let expiredDate = Date().addingTimeInterval(-13 * 60 * 60)
+        let expiredSession = WorkoutSession(lastUpdated: expiredDate)
+        let activeSession = WorkoutSession()
+        
+        try await store.save(expiredSession)
+        try await store.save(activeSession)
+        
+        // Check expired sessions
+        let expiredSessions = try await store.getExpiredSessions()
+        #expect(expiredSessions.count == 1)
+        #expect(expiredSessions.first?.id == expiredSession.id)
+        
+        // Check specific session expiration
+        let isExpired = try await store.isSessionExpired(id: expiredSession.id)
+        #expect(isExpired == true)
+        
+        let isActiveExpired = try await store.isSessionExpired(id: activeSession.id)
+        #expect(isActiveExpired == false)
+        
+        // Prune expired sessions
+        let prunedIds = try await store.pruneExpiredSessions()
+        #expect(prunedIds.count == 1)
+        #expect(prunedIds.contains(expiredSession.id))
+        
+        // Verify expired session was removed
+        let remainingSessions = try await store.loadAll()
+        #expect(remainingSessions.count == 1)
+        #expect(remainingSessions.first?.id == activeSession.id)
+    }
+    
+    @Test func inMemoryStoreRecoveryOperations() async throws {
+        let store = InMemorySessionStore()
+        
+        // Create sessions with different states
+        let activeSession = WorkoutSession()
+        var expiredSession = WorkoutSession(lastUpdated: Date().addingTimeInterval(-13 * 60 * 60))
+        expiredSession.status = .active
+        var completedSession = WorkoutSession()
+        completedSession.status = .completed
+        
+        try await store.save(activeSession)
+        try await store.save(expiredSession)
+        try await store.save(completedSession)
+        
+        // Test recovery capability
+        let canRecoverActive = try await store.canRecover(sessionId: activeSession.id)
+        #expect(canRecoverActive == true)
+        
+        let canRecoverExpired = try await store.canRecover(sessionId: expiredSession.id)
+        #expect(canRecoverExpired == false)
+        
+        let canRecoverCompleted = try await store.canRecover(sessionId: completedSession.id)
+        #expect(canRecoverCompleted == false)
+        
+        // Test recover all sessions
+        let recoveredSessions = try await store.recoverAllSessions()
+        #expect(recoveredSessions.count == 1)
+        #expect(recoveredSessions.first?.id == activeSession.id)
+    }
+    
+    @Test func inMemoryStoreStatisticsAndUtilities() async throws {
+        let store = InMemorySessionStore()
+        
+        // Initially empty
+        let initialCount = try await store.getTotalSessionCount()
+        #expect(initialCount == 0)
+        
+        let initialSize = try await store.getStorageSize()
+        #expect(initialSize == 0)
+        
+        // Add sessions
+        let session1 = WorkoutSession()
+        let session2 = WorkoutSession()
+        
+        try await store.save(session1)
+        try await store.save(session2)
+        
+        // Check counts
+        let afterCount = try await store.getTotalSessionCount()
+        #expect(afterCount == 2)
+        
+        let afterSize = try await store.getStorageSize()
+        #expect(afterSize > 0)
+        
+        // Clear all data
+        try await store.clearAllData()
+        
+        let clearedCount = try await store.getTotalSessionCount()
+        #expect(clearedCount == 0)
+        
+        let clearedSessions = try await store.loadAll()
+        #expect(clearedSessions.isEmpty)
+    }
+    
+    @Test func inMemoryStoreErrorHandling() async throws {
+        let store = InMemorySessionStore()
+        
+        let nonExistentId = UUID()
+        
+        // Loading non-existent session should return nil
+        let nonExistentSession = try await store.load(id: nonExistentId)
+        #expect(nonExistentSession == nil)
+        
+        // Deleting non-existent session should throw
+        await #expect(throws: StorageError.self) {
+            try await store.delete(id: nonExistentId)
+        }
+        
+        // Checking expiration of non-existent session should throw
+        await #expect(throws: StorageError.self) {
+            _ = try await store.isSessionExpired(id: nonExistentId)
+        }
+        
+        // Can't recover non-existent session
+        let canRecoverNonExistent = try await store.canRecover(sessionId: nonExistentId)
+        #expect(canRecoverNonExistent == false)
+    }
+    
+    @Test func inMemoryStoreComplexWorkflowScenario() async throws {
+        let store = InMemorySessionStore()
+        
+        // Enable autosave
+        await store.enableAutosave(interval: 0.1)
+        
+        // Create session with exercises
+        var session = WorkoutSession()
+        
+        let exercise = ExerciseEntry(
+            bodyPart: .chest,
+            equipment: .barbell,
+            name: "벤치프레스"
+        )
+        
+        session.addExercise(exercise)
+        
+        // Add sets to exercise
+        for i in 1...5 {
+            let set = SetRecord(weightKg: Double(50 + i * 5), reps: 8)
+            session.addSetToExercise(exerciseId: exercise.id, set: set)
+        }
+        
+        // Save session
+        try await store.save(session)
+        
+        // Verify data integrity
+        let savedSession = try await store.load(id: session.id)
+        #expect(savedSession?.exercises.count == 1)
+        #expect(savedSession?.exercises.first?.sets.count == 5)
+        #expect(savedSession?.totalSets == 5)
+        
+        // Complete session
+        session.complete()
+        try await store.updateSession(session)
+        
+        // Verify completion
+        let completedSession = try await store.load(id: session.id)
+        #expect(completedSession?.status == .completed)
+        #expect(completedSession?.endTime != nil)
+        
+        // Verify it's no longer in active sessions
+        let activeSessions = try await store.getActiveSessions()
+        #expect(activeSessions.isEmpty)
+        
+        // Verify it's in completed sessions
+        let completedSessions = try await store.getCompletedSessions()
+        #expect(completedSessions.count == 1)
+        
+        await store.disableAutosave()
+    }
+}
