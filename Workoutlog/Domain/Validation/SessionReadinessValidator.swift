@@ -1,5 +1,27 @@
 import Foundation
 
+// MARK: - 검증 오류 타입
+public enum ValidationError: Error, LocalizedError {
+    case invalidWeight(String)
+    case invalidReps(String)
+    case invalidSupersetCount(String)
+    case duplicateExerciseInSuperset(String)
+    case sessionExpired(String)
+    case insufficientSets(String)
+    
+    public var errorDescription: String? {
+        switch self {
+        case .invalidWeight(let message),
+             .invalidReps(let message),
+             .invalidSupersetCount(let message),
+             .duplicateExerciseInSuperset(let message),
+             .sessionExpired(let message),
+             .insufficientSets(let message):
+            return message
+        }
+    }
+}
+
 public struct SessionReadinessValidator {
     
     // MARK: - 운동 준비 상태 검증
@@ -41,7 +63,8 @@ public struct SessionReadinessValidator {
     }
     
     // MARK: - 세트 입력 검증
-     public static func validateSetRecord(weightKg: Double?, equipment: EquipmentType) throws -> Bool {
+    
+    public static func validateSetRecord(weightKg: Double?, equipment: EquipmentType) throws -> Bool {
         if equipment.requiresPositiveWeight {
             guard let weight = weightKg, weight > 0 else {
                 throw ValidationError.invalidWeight("기구 운동에서는 0보다 큰 중량을 입력해야 합니다.")
@@ -96,27 +119,5 @@ public struct SessionReadinessValidator {
         }
         
         return true
-    }
-}
-
-// MARK: - 검증 오류 타입
-public enum ValidationError: Error, LocalizedError {
-    case invalidWeight(String)
-    case invalidReps(String)
-    case invalidSupersetCount(String)
-    case duplicateExerciseInSuperset(String)
-    case sessionExpired(String)
-    case insufficientSets(String)
-    
-    public var errorDescription: String? {
-        switch self {
-        case .invalidWeight(let message),
-             .invalidReps(let message),
-             .invalidSupersetCount(let message),
-             .duplicateExerciseInSuperset(let message),
-             .sessionExpired(let message),
-             .insufficientSets(let message):
-            return message
-        }
     }
 }
