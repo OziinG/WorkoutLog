@@ -701,3 +701,424 @@ struct StorageTests {
         await store.disableAutosave()
     }
 }
+// MARK: - SessionManager Tests
+
+struct SessionManagerTests {
+    
+    // MARK: - Initialization & Basic State Tests
+    
+    @Test func sessionManagerInitialization() async throws {
+        let store = InMemorySessionStore()
+        try await store.clearAllData() // 테스트 시작 전 초기화
+        let manager = await SessionManager(store: store)
+        
+        // Wait for initial setup
+        try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+        
+        #expect(await manager.currentSession == nil)
+        #expect(await manager.isLoading == false)
+        #expect(await manager.error == nil)
+        #expect(await manager.canCompleteSession == false)
+        #expect(await manager.hasRecoverableSession == false)
+        #expect(await manager.isAutosaveEnabled == false)
+    }
+    
+    @Test func sessionManagerStartNewSession() async throws {
+        let store = InMemorySessionStore()
+        try await store.clearAllData()
+        let manager = await SessionManager(store: store)
+        
+        await manager.startNewSession()
+        
+        #expect(await manager.currentSession != nil)
+        #expect(await manager.currentSession?.status == .active)
+        #expect(await manager.hasRecoverableSession == false)
+        #expect(await manager.isAutosaveEnabled == true)
+        #expect(await manager.error == nil)
+    }
+    
+    @Test func sessionManagerCompleteSession() async throws {
+        let store = InMemorySessionStore()
+        try await store.clearAllData()
+        let manager = await SessionManager(store: store)
+        
+        await manager.startNewSession()
+        
+        let exercise = ExerciseEntry(bodyPart: .chest, equipment: .barbell, name: "벤치프레스")
+        await manager.addExercise(exercise)
+        
+        for i in 1...4 {
+            let set = SetRecord(weightKg: Double(60 + i * 5), reps: 8)
+            await manager.addSetToCurrentExercise(exerciseId: exercise.id, set: set)
+        }
+        
+        #expect(await manager.canCompleteSession == true)
+        
+        let logString = await manager.completeCurrentSession()
+        
+        #expect(logString != nil)
+        #expect(logString!.contains("벤치프레스"))
+        #expect(await manager.currentSession == nil)
+        #expect(await manager.canCompleteSession == false)
+        #expect(await manager.isAutosaveEnabled == false)
+    }
+    
+    // MARK: - Exercise Management Tests
+    
+    @Test func sessionManagerAddExercise() async throws {
+        let store = InMemorySessionStore()
+        try await store.clearAllData()
+        let manager = await SessionManager(store: store)
+        
+        await manager.startNewSession()
+        
+        let exercise = ExerciseEntry(bodyPart: .back, equipment: .cable, name: "랫풀다운")
+        await manager.addExercise(exercise)
+        
+        #expect(await manager.getCurrentExercises().count == 1)
+        #expect(await manager.getCurrentExercises().first?.name == "랫풀다운")
+        #expect(await manager.getTotalExercises() == 1)
+    }
+    
+    @Test func sessionManagerAddSuperset() async throws {
+        let store = InMemorySessionStore()
+        try await store.clearAllData()
+        let manager = await SessionManager(store: store)
+        
+        await manager.startNewSession()
+        
+        let exercise1 = ExerciseEntry(bodyPart: .chest, equipment: .barbell, name: "벤치프레스")
+        let exercise2 = ExerciseEntry(bodyPart: .back, equipment: .barbell, name: "바벨로우")
+        
+        await manager.addExercise(exercise1)
+        await manager.addExercise(exercise2)
+        
+        let superset = SupersetGroup(exerciseIds: [exercise1.id, exercise2.id], order: 1)
+        await manager.addSuperset(superset)
+        
+        #expect(await manager.getCurrentSupersets().count == 1)
+        #expect(await manager.isExerciseInSuperset(exercise1.id) == true)
+        #expect(await manager.isExerciseInSuperset(exercise2.id) == true)
+    }
+    
+    // MARK: - Set Management Tests
+    
+    @Test func sessionManagerAddSetToExercise() async throws {
+        let store = InMemorySessionStore()
+        try await store.clearAllData()
+        let manager = await SessionManager(store: store)
+        
+        await manager.startNewSession()
+        
+        let exercise = ExerciseEntry(bodyPart: .legs, equipment: .barbell, name: "스쿼트")
+        await manager.addExercise(exercise)
+        
+        let set = SetRecord(weightKg: 100.0, reps: 10)
+        await manager.addSetToCurrentExercise(exerciseId: exercise.id, set: set)
+        
+        #expect(await manager.getSets(for: exercise.id).count == 1)
+        #expect(await manager.getSetCount(for: exercise.id) == 1)
+        #expect(await manager.getTotalSets() == 1)
+        #expect(await manager.isExerciseReady(exercise.id) == false) // Only 1 set
+    }
+    
+    @Test func sessionManagerSetValidation() async throws {
+        let store = InMemorySessionStore()
+        try await store.clearAllData()
+        let manager = await SessionManager(store: store)
+        
+        await manager.startNewSession()
+        
+        let exercise = ExerciseEntry(bodyPart: .chest, equipment: .barbell, name: "벤치프레스")
+        await manager.addExercise(exercise)
+        
+        let invalidSet = SetRecord(weightKg: 0, reps: 10)
+        await manager.addSetToCurrentExercise(exerciseId: exercise.id, set: invalidSet)
+        
+        #expect(await manager.error != nil)
+        #expect(await manager.getSets(for: exercise.id).count == 0) // Set should not be added
+    }
+    
+    @Test func sessionManagerExerciseReadiness() async throws {
+        let store = InMemorySessionStore()
+        try await store.clearAllData()
+        let manager = await SessionManager(store: store)
+        
+        await manager.startNewSession()
+        
+        let exercise = ExerciseEntry(bodyPart: .arms, equipment: .dumbbell, name: "덤벨컬")
+        await manager.addExercise(exercise)
+        
+        for i in 1...3 {
+            let set = SetRecord(weightKg: Double(10 + i * 2), reps: 10)
+            await manager.addSetToCurrentExercise(exerciseId: exercise.id, set: set)
+        }
+        
+        #expect(await manager.isExerciseReady(exercise.id) == false)
+        #expect(await manager.canCompleteSession == false)
+        
+        let fourthSet = SetRecord(weightKg: 18.0, reps: 8)
+        await manager.addSetToCurrentExercise(exerciseId: exercise.id, set: fourthSet) // 문법 오류 수정
+        
+        #expect(await manager.isExerciseReady(exercise.id) == true)
+        #expect(await manager.canCompleteSession == true)
+    }
+    
+    // MARK: - Superset Management Tests
+    
+    @Test func sessionManagerSupersetReadiness() async throws {
+        let store = InMemorySessionStore()
+        try await store.clearAllData()
+        let manager = await SessionManager(store: store)
+        
+        await manager.startNewSession()
+        
+        let exercise1 = ExerciseEntry(bodyPart: .chest, equipment: .barbell, name: "벤치프레스")
+        let exercise2 = ExerciseEntry(bodyPart: .back, equipment: .barbell, name: "바벨로우")
+        
+        await manager.addExercise(exercise1)
+        await manager.addExercise(exercise2)
+        
+        let superset = SupersetGroup(exerciseIds: [exercise1.id, exercise2.id], order: 1)
+        await manager.addSuperset(superset)
+        
+        for i in 1...4 {
+            let set = SetRecord(weightKg: Double(70 + i * 5), reps: 8)
+            await manager.addSetToCurrentExercise(exerciseId: exercise1.id, set: set)
+        }
+        
+        #expect(await manager.isExerciseReady(exercise1.id) == true)
+        #expect(await manager.isExerciseReady(exercise2.id) == false)
+        #expect(await manager.isSupersetReady(superset.id) == false)
+        #expect(await manager.canCompleteSession == false)
+        
+        for i in 1...4 {
+            let set = SetRecord(weightKg: Double(60 + i * 5), reps: 10)
+            await manager.addSetToCurrentExercise(exerciseId: exercise2.id, set: set)
+        }
+        
+        #expect(await manager.isExerciseReady(exercise2.id) == true)
+        #expect(await manager.isSupersetReady(superset.id) == true)
+        #expect(await manager.canCompleteSession == true)
+    }
+    
+    // MARK: - Recovery Tests (Phase 3)
+    
+    @Test func sessionManagerRecovery() async throws {
+        let store = InMemorySessionStore()
+        try await store.clearAllData()
+        let manager = await SessionManager(store: store)
+        
+        await manager.startNewSession()
+        let exercise = ExerciseEntry(bodyPart: .chest, equipment: .barbell, name: "벤치프레스")
+        await manager.addExercise(exercise)
+        
+        let set = SetRecord(weightKg: 60.0, reps: 10)
+        await manager.addSetToCurrentExercise(exerciseId: exercise.id, set: set)
+        
+        let originalSessionId = await manager.currentSession?.id
+        
+        let pauseSuccess = await manager.pauseCurrentSession()
+        #expect(pauseSuccess == true)
+        #expect(await manager.currentSession == nil)
+        #expect(await manager.hasRecoverableSession == true)
+        
+        let recoverySuccess = await manager.attemptRecovery()
+        #expect(recoverySuccess == true)
+        #expect(await manager.currentSession?.id == originalSessionId)
+        #expect(await manager.getCurrentExercises().count == 1)
+        #expect(await manager.getTotalSets() == 1)
+    }
+    
+    @Test func sessionManagerGetRecoverableSessionInfo() async throws {
+        let store = InMemorySessionStore()
+        try await store.clearAllData()
+        let manager = await SessionManager(store: store)
+        
+        await manager.startNewSession()
+        
+        let exercise = ExerciseEntry(bodyPart: .legs, equipment: .barbell, name: "스쿼트")
+        await manager.addExercise(exercise)
+        
+        for i in 1...3 {
+            let set = SetRecord(weightKg: Double(80 + i * 10), reps: 10)
+            await manager.addSetToCurrentExercise(exerciseId: exercise.id, set: set)
+        }
+        
+        let pauseSuccess = await manager.pauseCurrentSession()
+        #expect(pauseSuccess == true)
+        
+        let sessionInfo = await manager.getRecoverableSessionInfo()
+        #expect(sessionInfo != nil)
+        #expect(sessionInfo?.exerciseCount == 1)
+        #expect(sessionInfo?.setCount == 3)
+    }
+    
+    @Test func sessionManagerDiscardRecoverableSession() async throws {
+        let store = InMemorySessionStore()
+        try await store.clearAllData()
+        let manager = await SessionManager(store: store)
+        
+        await manager.startNewSession()
+        let exercise = ExerciseEntry(bodyPart: .chest, equipment: .dumbbell, name: "덤벨플라이")
+        await manager.addExercise(exercise)
+        
+        let pauseSuccess = await manager.pauseCurrentSession()
+        #expect(pauseSuccess == true)
+        #expect(await manager.hasRecoverableSession == true)
+        
+        let discardSuccess = await manager.discardRecoverableSession()
+        #expect(discardSuccess == true)
+        #expect(await manager.hasRecoverableSession == false)
+    }
+    
+    // MARK: - Error Recovery Tests
+    
+    @Test func sessionManagerRecoverFromError() async throws {
+        let store = InMemorySessionStore()
+        try await store.clearAllData()
+        let manager = await SessionManager(store: store)
+        
+        await manager.startNewSession()
+        
+        await manager.addSetToCurrentExercise(exerciseId: UUID(), set: SetRecord(weightKg: 50, reps: 10))
+        #expect(await manager.error != nil)
+        
+        await manager.recoverFromError()
+        #expect(await manager.error == nil)
+        #expect(await manager.isLoading == false)
+    }
+    
+    @Test func sessionManagerValidateAndRepairSession() async throws {
+        let store = InMemorySessionStore()
+        try await store.clearAllData()
+        let manager = await SessionManager(store: store)
+        
+        await manager.startNewSession()
+        
+        let exercise = ExerciseEntry(bodyPart: .chest, equipment: .barbell, name: "벤치프레스")
+        await manager.addExercise(exercise)
+        
+        let isValid = await manager.validateAndRepairCurrentSession()
+        #expect(isValid == true)
+    }
+    
+    // MARK: - Force Complete Tests
+    
+    @Test func sessionManagerForceCompleteSession() async throws {
+        let store = InMemorySessionStore()
+        try await store.clearAllData()
+        let manager = await SessionManager(store: store)
+        
+        await manager.startNewSession()
+        
+        let exercise = ExerciseEntry(bodyPart: .chest, equipment: .barbell, name: "벤치프레스")
+        await manager.addExercise(exercise)
+        
+        for i in 1...2 {
+            let set = SetRecord(weightKg: Double(60 + i * 5), reps: 8)
+            await manager.addSetToCurrentExercise(exerciseId: exercise.id, set: set)
+        }
+        
+        #expect(await manager.canCompleteSession == false)
+        
+        let logString = await manager.forceCompleteCurrentSession()
+        #expect(logString != nil)
+        #expect(logString!.contains("벤치프레스"))
+        #expect(await manager.currentSession == nil)
+    }
+    
+    // MARK: - Clear Data Tests
+    
+    @Test func sessionManagerClearAllData() async throws {
+        let store = InMemorySessionStore()
+        try await store.clearAllData()
+        let manager = await SessionManager(store: store)
+        
+        await manager.startNewSession()
+        
+        let exercise = ExerciseEntry(bodyPart: .chest, equipment: .barbell, name: "벤치프레스")
+        await manager.addExercise(exercise)
+        
+        #expect(await manager.currentSession != nil)
+        
+        let clearSuccess = await manager.clearAllData()
+        #expect(clearSuccess == true)
+        #expect(await manager.currentSession == nil)
+        #expect(await manager.hasRecoverableSession == false)
+        #expect(await manager.isAutosaveEnabled == false)
+    }
+    
+    // MARK: - Session Statistics Tests
+    
+    @Test func sessionManagerStatistics() async throws {
+        let store = InMemorySessionStore()
+        try await store.clearAllData()
+        let manager = await SessionManager(store: store)
+        
+        await manager.startNewSession()
+        
+        let exercise1 = ExerciseEntry(bodyPart: .chest, equipment: .barbell, name: "벤치프레스")
+        let exercise2 = ExerciseEntry(bodyPart: .back, equipment: .cable, name: "랫풀다운")
+        
+        await manager.addExercise(exercise1)
+        await manager.addExercise(exercise2)
+        
+        for i in 1...3 {
+            let set1 = SetRecord(weightKg: Double(60 + i * 5), reps: 8)
+            let set2 = SetRecord(weightKg: Double(40 + i * 3), reps: 10)
+            
+            await manager.addSetToCurrentExercise(exerciseId: exercise1.id, set: set1)
+            await manager.addSetToCurrentExercise(exerciseId: exercise2.id, set: set2)
+        }
+        
+        #expect(await manager.getTotalExercises() == 2)
+        #expect(await manager.getTotalSets() == 6)
+        
+        let duration = await manager.getSessionDuration()
+        #expect(duration != nil)
+        #expect(duration! > 0)
+    }
+    
+    // MARK: - Edge Cases and Error Handling
+    
+    @Test func sessionManagerNoActiveSessionOperations() async throws {
+        let store = InMemorySessionStore()
+        try await store.clearAllData()
+        let manager = await SessionManager(store: store)
+        
+        let exercise = ExerciseEntry(bodyPart: .chest, equipment: .barbell, name: "벤치프레스")
+        
+        await manager.addExercise(exercise)
+        #expect(await manager.error != nil)
+        #expect(await manager.getCurrentExercises().isEmpty)
+        
+        await manager.recoverFromError()
+        #expect(await manager.error == nil)
+    }
+    
+    @Test func sessionManagerQueryMethods() async throws {
+        let store = InMemorySessionStore()
+        try await store.clearAllData()
+        let manager = await SessionManager(store: store)
+        
+        await manager.startNewSession()
+        
+        let exerciseId = UUID()
+        let exercise = ExerciseEntry(id: exerciseId, bodyPart: .arms, equipment: .dumbbell, name: "덤벨컬")
+        
+        await manager.addExercise(exercise)
+        
+        #expect(await manager.getExercise(by: exerciseId) != nil)
+        #expect(await manager.getExercise(by: exerciseId)?.name == "덤벨컬")
+        #expect(await manager.canAddSetToExercise(exerciseId) == true)
+        
+        for i in 1...8 {
+            let set = SetRecord(weightKg: Double(10 + i), reps: 10)
+            await manager.addSetToCurrentExercise(exerciseId: exerciseId, set: set)
+        }
+        
+        #expect(await manager.getSetCount(for: exerciseId) == 8)
+        #expect(await manager.canAddSetToExercise(exerciseId) == false) // Max 8 sets reached
+    }
+}

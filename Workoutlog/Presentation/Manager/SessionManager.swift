@@ -17,6 +17,7 @@ enum SessionError: LocalizedError {
     case validationFailed([String])
     case sessionExpired
     case storeNotAvailable
+    case exerciseNotFound // New error case for exercise not found
     
     var errorDescription: String? {
         switch self {
@@ -32,6 +33,8 @@ enum SessionError: LocalizedError {
             return "세션이 만료되었습니다 (12시간 경과)."
         case .storeNotAvailable:
             return "저장소에 접근할 수 없습니다."
+        case .exerciseNotFound: // Error description for exercise not found
+            return "운동을 찾을 수 없습니다."
         }
     }
     
@@ -49,6 +52,8 @@ enum SessionError: LocalizedError {
             return "새로운 운동 세션을 시작해주세요."
         case .storeNotAvailable:
             return "앱을 재시작해주세요."
+        case .exerciseNotFound: // Recovery suggestion for exercise not found
+            return "운동 목록을 새로고침하고 다시 시도해주세요."
         }
     }
 }
@@ -306,10 +311,15 @@ extension SessionManager {
             return
         }
         
+        guard let exercise = session.exercises.first(where: { $0.id == exerciseId }) else {
+            error = .exerciseNotFound
+            return
+        }
+
         do {
             _ = try SessionReadinessValidator.validateSetRecord(
                 weightKg: set.weightKg,
-                equipment: getExerciseEquipment(exerciseId: exerciseId)
+                equipment: exercise.equipment
             )
             
             _ = try SessionReadinessValidator.validateReps(set.reps)
@@ -425,7 +435,10 @@ extension SessionManager {
                 try await store.delete(id: recentSession.id)
                 hasRecoverableSession = false
                 isLoading = false
-                throw SessionError.sessionExpired
+                let expiredError = SessionError.sessionExpired
+                error = expiredError // Set the error property
+                print("Error set to: \(expiredError.localizedDescription)")
+                throw expiredError
             }
             
             // 세션 복구
@@ -643,5 +656,28 @@ extension SessionManager {
             
             return true
         } ?? false
+    }
+}
+
+extension SessionError: Equatable {
+    static func == (lhs: SessionError, rhs: SessionError) -> Bool {
+        switch (lhs, rhs) {
+        case (.noActiveSession, .noActiveSession):
+            return true
+        case (.recoveryFailed(let lhsReason), .recoveryFailed(let rhsReason)):
+            return lhsReason == rhsReason
+        case (.saveFailure(let lhsReason), .saveFailure(let rhsReason)):
+            return lhsReason == rhsReason
+        case (.validationFailed(let lhsErrors), .validationFailed(let rhsErrors)):
+            return lhsErrors == rhsErrors
+        case (.sessionExpired, .sessionExpired):
+            return true
+        case (.storeNotAvailable, .storeNotAvailable):
+            return true
+        case (.exerciseNotFound, .exerciseNotFound): // Equatable conformance for exercise not found
+            return true
+        default:
+            return false
+        }
     }
 }
